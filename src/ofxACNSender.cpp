@@ -104,6 +104,47 @@ std::pair<int, int> ofxACNSender::setChannels(int startUniverse, int startChanne
 	return setChannels(startUniverse, startChannel, dataIn.getData(), dataIn.size());
 }
 
+std::pair<int, int> ofxACNSender::setChannels16Bit(int universe, int startChannel, uint16_t* values, size_t size)
+{
+    int totalSize = size;
+    int channel = startChannel;
+    int packetSize = size;
+    int channelOffset = 0;
+    
+    while (packetSize > 0)
+    {
+        createNewUniverse(universe);
+        setPacketUniverse(universe);
+
+        auto& dataPacket = universePackets.at(universe);
+
+        // For 16-bit values, we need 2 channels per value
+        // We'll use the first channel for the high byte and the second for the low byte
+        while (channel < startChannel + size && channel <= 509) { // 509 instead of 510 to ensure space for 2 bytes
+            uint16_t value = *(values + (channelOffset + channel - startChannel));
+            
+            // Split the 16-bit value into high and low bytes
+            dataPacket.payload.at(channel - 1) = (value >> 8) & 0xFF; // High byte (MSB)
+            dataPacket.payload.at(channel) = value & 0xFF;            // Low byte (LSB)
+            
+            // Increment channel by 2 since we used 2 slots
+            channel += 2;
+            packetSize--;
+        }
+        
+        if (packetSize > 0)
+        {
+            channelOffset = totalSize - packetSize;
+            startChannel = 1;
+            channel = 1;
+            size = packetSize;
+            universe++;
+        }
+    }
+
+    return std::make_pair(universe, channel);
+}
+
 void ofxACNSender::setPriority(int priority)
 {
 	if ((priority >= 0) && (priority <= 200)) {
