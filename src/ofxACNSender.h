@@ -28,7 +28,8 @@ public:
 	std::pair<int, int> setPixel(int startUniverse, int startChannel, ofColor col);
 	
 	// 16-bit data support
-	std::pair<int, int> setChannels16Bit(int universe, int startChannel, uint16_t* values, size_t size);
+	enum ByteOrder { MSB_FIRST, LSB_FIRST }; // MSB_FIRST = high->low, LSB_FIRST = low->high
+	std::pair<int, int> setChannels16Bit(int universe, int startChannel, uint16_t* values, size_t size, ByteOrder byteOrder = MSB_FIRST);
 
 	void setPriority(int priority);
 

@@ -104,7 +104,7 @@ std::pair<int, int> ofxACNSender::setChannels(int startUniverse, int startChanne
 	return setChannels(startUniverse, startChannel, dataIn.getData(), dataIn.size());
 }
 
-std::pair<int, int> ofxACNSender::setChannels16Bit(int universe, int startChannel, uint16_t* values, size_t size)
+std::pair<int, int> ofxACNSender::setChannels16Bit(int universe, int startChannel, uint16_t* values, size_t size, ByteOrder byteOrder)
 {
     int totalSize = size;
     int channel = startChannel;
@@ -119,13 +119,19 @@ std::pair<int, int> ofxACNSender::setChannels16Bit(int universe, int startChanne
         auto& dataPacket = universePackets.at(universe);
 
         // For 16-bit values, we need 2 channels per value
-        // We'll use the first channel for the high byte and the second for the low byte
         while (channel < startChannel + size && channel <= 509) { // 509 instead of 510 to ensure space for 2 bytes
             uint16_t value = *(values + (channelOffset + channel - startChannel));
             
-            // Split the 16-bit value into high and low bytes
-            dataPacket.payload.at(channel - 1) = (value >> 8) & 0xFF; // High byte (MSB)
-            dataPacket.payload.at(channel) = value & 0xFF;            // Low byte (LSB)
+            // Split the 16-bit value into high and low bytes according to the specified byte order
+            if (byteOrder == MSB_FIRST) {
+                // High byte (MSB) first, then low byte (LSB) - default
+                dataPacket.payload.at(channel - 1) = (value >> 8) & 0xFF; // High byte
+                dataPacket.payload.at(channel) = value & 0xFF;            // Low byte
+            } else {
+                // Low byte (LSB) first, then high byte (MSB)
+                dataPacket.payload.at(channel - 1) = value & 0xFF;        // Low byte
+                dataPacket.payload.at(channel) = (value >> 8) & 0xFF;     // High byte
+            }
             
             // Increment channel by 2 since we used 2 slots
             channel += 2;
